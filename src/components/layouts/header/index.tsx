@@ -3,37 +3,14 @@ import React from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Image from "next/image";
 import { Dropdown } from "flowbite-react";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import WalletConnectButton from "@/components/layouts/header/atoms/walletConnect";
+import dynamic from "next/dynamic";
+const WalletConnectButton = dynamic(() => import("@/components/layouts/header/atoms/walletConnect"), {ssr: false});
+import { useAtom } from "jotai";
+import { keywordAtom } from "@/store/icos";
 
 const Header = () => {
 
-  const _renderWalletConnectButton = () => (
-    <div className="flex gap-1 sm:gap-2 text-sm font-bold">
-      <div className="founded-full p-[5px] flex items-center dark:bg-black rounded-full dark:text-[#5D5F68] hover:dark:text-white cursor-pointer">
-        <Image
-          src={"/images/eth.png"}
-          width={32}
-          height={32}
-          alt={"wallet"}   
-          priority={true}    
-          className="rounded-full"
-        />
-        <div className="pl-2 pr-3 truncate md:inline hidden">ETH MAINNET</div>
-      </div>
-      <div className="founded-full p-[5px] flex items-center dark:bg-black rounded-full dark:text-[#5D5F68] hover:dark:text-white cursor-pointer">
-        <Image
-          src={"/images/man.png"}
-          width={32}
-          height={32}
-          alt={"wallet"}   
-          priority={true}    
-          className="rounded-full"
-        />
-        <div className="pl-2 pr-3 truncate md:inline hidden">7.00096 <span className="text-[#45B26B]">ETH</span></div>
-      </div>
-    </div>
-  )
+  const [keyword, setKeyword] = useAtom <string> (keywordAtom);
 
   return (
     <div className="flex items-center flex-none gap-3 sm:gap-6 p-4 text-black dark:text-white w-full justify-between bg-white dark:bg-[#100E28] border-2 border-[#E3E3E3] dark:border-[#100E28] rounded-xl">
@@ -59,11 +36,10 @@ const Header = () => {
           <input
             className="bg-white transition-all text-[12px] p-3 dark:bg-[#020111] w-full rounded-lg text-blue-gray-700 font-sans font-normal border-[#98bdea3d] dark:border-none outline-none focus:ring-1 focus:ring-[#8ca8cba2] focus:border-[#8ca8cba2] border"
             placeholder="" 
-            // onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeyword(e.target.value)}
+            value={keyword}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeyword(e.target.value)}
           />
         </div>
-        {/* {  _renderWalletConnectButton () } */}
-        {/* <ConnectButton/> */}
         <WalletConnectButton/>
       </div>
 

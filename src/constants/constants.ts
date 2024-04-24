@@ -19,14 +19,14 @@ export const CHAIN_IDS = {
   SEPOLIA: 11155111
 };
 
-// export const FACTORY_ADDRESSES = {
-//   [CHAIN_IDS.AVALANCHE]: "", //verified
-//   [CHAIN_IDS.SEPOLIA]: "0xA60a7b19c334f36b902FBCA973aD2AaeBcD0eFF0", //verified
-// };
 export const FACTORY_ADDRESSES = {
   [CHAIN_IDS.AVALANCHE]: "", //verified
-  [CHAIN_IDS.SEPOLIA]: "0x4C58e76E7b52d1ca562A2fF971234615A97350E9", //verified
+  [CHAIN_IDS.SEPOLIA]: "0x84899F7A39737E835cB581D043B04852cCd255b0", //verified
 };
+// export const FACTORY_ADDRESSES = {
+//   [CHAIN_IDS.AVALANCHE]: "", //verified
+//   [CHAIN_IDS.SEPOLIA]: "0x4C58e76E7b52d1ca562A2fF971234615A97350E9", //verified
+// };
 
 export const DAI_ADDRESSES = {
   [CHAIN_IDS.AVALANCHE]: "", //verified

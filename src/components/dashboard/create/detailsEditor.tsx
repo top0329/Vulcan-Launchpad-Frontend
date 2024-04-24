@@ -1,13 +1,15 @@
 "use client";
 import React from "react";
+import dynamic from "next/dynamic";
 //components
 import InputInfo from "@/components/dashboard/create/atoms/infoInput";
 import InputCap from "@/components/dashboard/create/atoms/capInput";
 import Datepicker from "@/components/dashboard/create/atoms/datePicker";
-import Description from "@/components/dashboard/create/atoms/descriptionInput";
+const Description = dynamic(() => import("@/components/dashboard/create/atoms/descriptionInput"), { ssr: false });
 import Uploader from "@/components/dashboard/create/atoms/dragFileUploader";
 //hooks
 import useToastr from "@/hooks/useToastr";
+import { Preview } from '@/types';
 import useAuth from "@/hooks/useAuth";
 //jotai
 import { useAtom } from "jotai";
@@ -54,6 +56,7 @@ const Create = ({ step, setStep }: IProps) => {
   const [instagram, setInstagram] = useAtom<string>(instagramAtom);
   const [farcaster, setFarcaster] = useAtom<string>(farcasterAtom);
   const [lens, setLens] = useAtom<string>(lensAtom);
+  const [preview] = useAtom<Preview|undefined>(previewAtom);
 
   // @when user type softcap
   const handleSoftcapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,38 +100,47 @@ const Create = ({ step, setStep }: IProps) => {
       showToast("ICO duraction field is required.", "warning"); 
       valid = false;
     } 
+    console.log(Number(endTime), new Date().getTime())
+    if (new Date(Number(endTime)).getTime() <= new Date().getTime()) {
+      showToast("End time must be in the future.", "warning"); 
+      valid = false;
+    } 
     if (!description || description === '<p><br></p>') {
       showToast("Project description field is required.", "warning"); 
       valid = false;
     }
     if (Number(hardCap) < Number(softCap)) {
-      showToast("Invalid softcap and hardcap configuration.", "warning");
+      showToast("Hard cap must be greater than soft cap.", "warning");
       valid = false;
     }
-    if (!twitter) {
-      showToast("Twitter account is required.", "warning");
+    if (!preview) {
+      showToast("You must choose introduction Media for your project.", "warning");
       valid = false;
     }
-    if (!facebook) {
-      showToast("facebook account is required.", "warning");
-      valid = false;
-    }
-    if (!instagram) {
-      showToast("instagram account is required.", "warning");
-      valid = false;
-    }
-    if (!linkedin) {
-      showToast("linkedin account is required.", "warning");
-      valid = false;
-    }
-    if (!farcaster) {
-      showToast("farcaster account is required.", "warning");
-      valid = false;
-    }
-    if (!lens) {
-      showToast("lens account is required.", "warning");
-      valid = false;
-    }
+    // if (!twitter) {
+    //   showToast("Twitter account is required.", "warning");
+    //   valid = false;
+    // }
+    // if (!facebook) {
+    //   showToast("facebook account is required.", "warning");
+    //   valid = false;
+    // }
+    // if (!instagram) {
+    //   showToast("instagram account is required.", "warning");
+    //   valid = false;
+    // }
+    // if (!linkedin) {
+    //   showToast("linkedin account is required.", "warning");
+    //   valid = false;
+    // }
+    // if (!farcaster) {
+    //   showToast("farcaster account is required.", "warning");
+    //   valid = false;
+    // }
+    // if (!lens) {
+    //   showToast("lens account is required.", "warning");
+    //   valid = false;
+    // }
 
     if (new Date(endTime) <= new Date()) {
       showToast("The end time must be in the future.", "warning");
@@ -213,7 +225,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setTwitter(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your twitter link"
         />
         <InputInfo
@@ -224,7 +236,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setFacebook(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your facebook link"
         />
         <InputInfo
@@ -235,7 +247,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setInstagram(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your instagram link"
         />
         <InputInfo
@@ -246,7 +258,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setLinkedin(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your Linkedin link"
         />
         <InputInfo
@@ -257,7 +269,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setFarcaster(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your farcaster link"
         />
         <InputInfo
@@ -268,7 +280,7 @@ const Create = ({ step, setStep }: IProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setLens(e.target.value)
           }
-          isInvalid={isInvalid}
+          isInvalid={false}
           message="input your Lens link"
         />
       </div>

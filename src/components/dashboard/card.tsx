@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 import React from "react";
 import Image from "next/image";
@@ -36,55 +37,147 @@ const Card = ({ id }: IProps) => {
   const [distance, setDistance] = React.useState<number>(0);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const [mediaType, setMediaType] = React.useState<string>("");
+  const [status, setStatus] = React.useState<number>(0);
   const [creator, setCreator] = React.useState<IUser|undefined>(undefined);
-
+  const [owner, setOwner] = React.useState<string>("");
+  const [tokensFullyCharged, setTokensFullyCharged] = React.useState<boolean>(false);
   const [ ethPrice ] = useAtom<number>(ethPriceAtom);
 
-  React.useEffect(() => {
-    if (!contract) return;
-    _getICOInfo ();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contract]);
+  /**
+   * get token data
+   * @param _contract Contract
+   */
+  async function _token (_contract: Contract) {
+    try {
+      const __token = await _contract.tokenInfo ();
+      setToken (__token);
+    } catch ( err ) { console.log("failed fetch token data") }
+  }
+  /**
+   * get ICO hardcap
+   * @param _contract 
+   */
+  async function _hardcap (_contract: Contract) {
+    try {
+      const __hardcap = await _contract.hardcap ();
+      setHardcap (__hardcap);
+    } catch ( err ) { console.log("failed fetch ICO hardcap") }  
+  }
+  /**
+   * get ICO softcap
+   * @param _contract 
+   */
+  async function _softcap (_contract: Contract) {
+    try {
+      const __softcap = await _contract.softcap ();
+      setSoftcap (__softcap);
+    } catch ( err ) { console.log("failed fetch ICO softcap") }
+  }
+  /**
+   * get ICO fundsRaised
+   * @param _contract 
+   */
+  async function _fundsRaised (_contract: Contract) {
+    try {
+      const __fundsRaised = await _contract.fundsRaised ();
+      setFundsRaised (__fundsRaised);
+    } catch ( err ) { console.log("failed fetch ICO fundsRaised") }
+  }
+  /**
+   * fetch ICO endTime
+   * @param _contract 
+   */
+  async function _endTime (_contract: Contract) {
+    try {
+      const __endTime = await _contract.endTime ();
+      setEndTime (__endTime);
+    } catch ( err ) { console.log("failed fetch ICO endTime") }
+  }
+  /**
+   * test if ICO is fully charged to reach hardcap and start
+   * @param _contract 
+   */
+  async function _tokensFullyCharged (_contract: Contract) {
+    try {
+      const __tokensFullyCharged = await _contract.tokensFullyCharged ();
+      console.log("------------------------------", __tokensFullyCharged)
+      setTokensFullyCharged (__tokensFullyCharged);
+    } catch ( err ) { console.log("failed to test if ICO is fully charged with tokens") }
+  }
+  /**
+   * fetch project data
+   * @param _contract 
+   */
+  async function _project (_contract: Contract) {
+    try {
+      const _projectURI = await _contract.projectURI ();
+      const response = await fetch(_projectURI);
+      const __project = await response.json();
+      setProject(__project);
+  
+      fetch(__project.logo)
+      .then(response => response.blob())
+      .then(blob => {
+        const type = blob.type.split('/')[0]; // Get the main type (image, video, etc.)
+        setMediaType (type);
+      })
+      .catch(error => console.error('Error fetching media:', error));
+    } catch ( err ) { console.log("failed fetch project data") }
+  }
+  /**
+   * fetch ICO status
+   * @param _contract 
+   */
+  async function _status (_contract: Contract) {
+    try {
+      const __status = await _contract.getICOState ();
+      setStatus (Number(__status));
+    } catch (err) { console.log("Failed to fetch current status of ICO") }
+  }
+  /**
+   * fetch IOC creator's information
+   * @param _contract 
+   */
+  async function _user (_contract: Contract) {
+    try {
+      const _creator = await _contract.creator ();
+      setOwner (_creator);
+      const { data: user } = await axios.get(`${baseURL}/user/${_creator}`);
+      setCreator (user);
+    } catch (err) {
+      console.log("Failed to fetch ICO creator's information");
+    }
+  }
 
-  const _getICOInfo = async () => {
+  const _getICOInfo = async (_contract: Contract) => {
+    const _start = Date.now() / 1000;
     // token data
-    const _token = await contract?.tokenInfo ();
-    setToken (_token);
+    _token (_contract);
     // hardcap
-    const _hardcap = await contract?.hardcap();
-    setHardcap (_hardcap);
+    _hardcap (_contract);
     // softcap
-    const _softcap = await contract?.softcap();
-    setSoftcap (_softcap);
+    _softcap (_contract);
     // funds raised
-    const _fundsRaised = await contract?.fundsRaised ();
-    setFundsRaised (_fundsRaised);
+    _fundsRaised (_contract);
     // ico endtime
-    const _endTime = await contract?.endTime ();
-    setEndTime (Number(_endTime));
+    _endTime (_contract);
     // project data
-    const _projectURI = await contract?.projectURI ();
-    const response = await fetch(_projectURI);
-    const _project = await response.json();
-    setProject(_project);
+    _project (_contract);
+    // test if tokens are fully charged
+    _tokensFullyCharged (_contract);
+    // ICO status
+    _status (_contract);
     // creator data
-    const _creator = await contract?.creator ();
-    const { data: user } = await axios.get(`${baseURL}/user/${_creator}`);
-    setCreator (user);
-    // test if log is video or pic
-    fetch(_project.logo)
-    .then(response => response.blob())
-    .then(blob => {
-      const type = blob.type.split('/')[0]; // Get the main type (image, video, etc.)
-      setMediaType (type);
-    })
-    .catch(error => console.error('Error fetching media:', error));
+    _user (_contract);
+
+    const _end = Date.now () / 1000;
+    console.log("time consuming---->", _end - _start);
   }
 
   React.useEffect(() => {
     timerRef.current = setInterval(async () => {
-      const _now = new Date().getTime();
-      const _distance = endTime - Math.floor(_now/1000);
+      const _now = Math.floor(Date.now()/1000);
+      const _distance = endTime - _now;
       setDistance(_distance);
       if ((_distance < 0 || isNaN(_distance)) && timerRef.current) {
         clearInterval(timerRef.current);
@@ -123,10 +216,56 @@ const Card = ({ id }: IProps) => {
       ICO,
       signer
     );
+    _getICOInfo (_contract); 
     setContract(_contract);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, chainId, signer, id]);
 
   const router = useRouter ();
+
+  const _renderStatusText = React.useMemo(() => {
+    if ( status === 0 && !tokensFullyCharged ) {
+      return (
+        <div className="ribbon bg-gradient-to-r from-[#55739b] to-[#03b1cf] shadow-lg">
+          <span className="font-bold text-sm text-white [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">AWAIT</span>
+        </div>
+      )
+    } else if ( status === 0 && tokensFullyCharged ) {
+      return (
+        <div className="ribbon bg-gradient-to-r from-[#cfb377] to-[#c4b585] shadow-lg">
+          <span className="font-bold text-sm text-white [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">Live</span>
+        </div>
+      )
+    } else if (status === 1) {
+      return (
+        <div className="ribbon bg-gradient-to-r from-[#ff3c00] to-[#cc2b2b] shadow-lg">
+          <span className="font-bold text-black text-sm [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">FAILED</span>
+        </div>
+      )
+    } else {
+      return (
+        <div className="ribbon bg-gradient-to-r from-[#a5d23b] to-[#857538] shadow-lg">
+          <span className="font-bold text-sm text-white [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">SUCCESS</span>
+        </div>
+      )
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, tokensFullyCharged]);
+  /**
+   * render ICO status text
+   */
+  const _renderStatus = React.useMemo(() => {
+    if ( status === 0 && !tokensFullyCharged ) {
+      return "Await Deposit"
+    } else if ( status === 0 && tokensFullyCharged ) {
+      return "Live";
+    } else if (status === 1) {
+      return "Failed"
+    } else {
+      return "Success"
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, tokensFullyCharged]);
   
   return (
     <div className="w-full dark:bg-[#100E28] bg-white p-4 rounded-2xl relative">
@@ -141,6 +280,7 @@ const Card = ({ id }: IProps) => {
           </video> : mediaType === "image" ? 
           <Image
             src={project?.logo + ""}
+            key={project?.logo + ""}
             width={0}
             alt=''
             height={0}
@@ -151,7 +291,8 @@ const Card = ({ id }: IProps) => {
         <div className="absolute right-4 -translate-y-1/2 w-1/6 p-1 bg-white rounded-[30%]">
           {
             creator?.avatar ?
-              <Image
+            <Image
+              key={creator.avatar}
               src={creator.avatar}
               width={0}
               height={0}
@@ -172,13 +313,20 @@ const Card = ({ id }: IProps) => {
           />
           <span className="text-xs text-white pr-2">{ token ? reduceAmount(formatEther(token.price)) : "0" } ETH</span>
         </div>
+        { _renderStatusText }
       </section>
 
-      <section id="live" className="mt-5 flex">
+      <section id="live" className="mt-5 flex gap-2">
         <div className="text-xs flex gap-3 items-center bg-[#D2FAE5] dark:bg-black dark:text-white px-3 py-[6px] rounded-full">
-          <span>Sale Live</span>
+          <span>{ _renderStatus }</span>
           <div className="w-2 h-2 bg-[#0CAF60] rounded-full"></div>
         </div>
+        {
+          address === owner && status === 0 && !tokensFullyCharged &&
+          <div onClick={() => router.push(`/deposit/${id}`)} className="text-xs flex gap-3 items-center bg-[#48916a] text-white cursor-pointer hover:opacity-60 dark:text-white px-3 py-[6px] rounded-full">
+            Deposit Token
+          </div>
+        }
       </section>
 
       <h2 className="mt-2 font-bold text-black dark:text-white text-[15px]">{project?.title}</h2>
@@ -221,14 +369,17 @@ const Card = ({ id }: IProps) => {
           <span className="truncate">{`${days}d ${hours}h ${minutes}m ${seconds}s`}</span>
         </div>
 
-        <section className="flex gap-[6px]">
+        <section className="flex gap-[3px]">
           <button className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
             <Icon icon="mdi:bell-outline" width={22} className="text-[#2B6EC8]"/>
           </button>
           <button className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
             <Icon icon="ph:heart-bold" width={22} className="text-[#2B6EC8]"/>
           </button>
-          <button onClick={() => router.push(`/${id}`)} className="rounded-2xl truncate bg-[#2B6EC8] px-5 text-white py-3">View</button>
+          <button onClick={() => router.push(`/${id}`)} className="rounded-xl truncate bg-[#2B6EC8] px-5 text-white py-3">View</button>
+          <a href={`https://sepolia.etherscan.io/address/${id}`} target="_blank" className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60 flex justify-center items-center">
+            <Icon icon="ic:twotone-travel-explore" width={22} className="text-[#2B6EC8]"/>
+          </a>
         </section>
       </section>
 

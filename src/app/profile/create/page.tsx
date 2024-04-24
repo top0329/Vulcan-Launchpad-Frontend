@@ -2,7 +2,6 @@
 import React from "react";
 import Header from "@/components/dashboard/header";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import Description from "@/components/dashboard/create/atoms/descriptionInput";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import InputInfo from "@/components/dashboard/create/atoms/infoInput";
@@ -10,12 +9,9 @@ import useToastr from "@/hooks/useToastr";
 import useActiveWeb3 from "@/hooks/useActiveWeb3";
 import useAuth from "@/hooks/useAuth";
 import { useSignMessage } from "wagmi";
-import { uploadToPinata } from "@/utils";
-import axios from 'axios';
-
-import { TMsg } from "@/types/user";
-import { SERVER_URL } from '@/constants/config';
+const Description = dynamic(() => import("@/components/dashboard/create/atoms/multiTextInput"), { ssr: false });
 import { useRouter } from "next/navigation";
+import { IMGBB_API_KEY } from "@/constants/config";
 
 const acceptables = [
   'image/png',
@@ -25,7 +21,8 @@ const acceptables = [
 ]
 
 
-const Evangilists = () => {
+const Create = () => {
+
   const [fullName, setFullName] = React.useState<string>("");
   const [company, setCompany] = React.useState<string>("");
   const [website, setWebsite] = React.useState<string>("");
@@ -35,16 +32,15 @@ const Evangilists = () => {
   const [instagram, setInstagram] = React.useState<string>("");
   const [farcaster, setFarcaster] = React.useState<string>("");
   const [lens, setLens] = React.useState<string>("");
-  const [avatar, setAvatar] = React.useState<string>("");
   const [bio, setBio] = React.useState<string>("");
   const [preview, setPreview] = React.useState<string>("");
+  const [avatar, setAvatar] = React.useState<File|undefined>(undefined);
   const [isInvalid, setIsInvalid] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const { showToast } = useToastr ();
 
   const { address, chain, isConnected, chainId } = useActiveWeb3();
   const { signUp } = useAuth();
-  const { signMessageAsync } = useSignMessage();
   const router = useRouter ();
 
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,10 +48,10 @@ const Evangilists = () => {
 
       if (!event.target.files) throw "no files";
       const file: File = event.target.files[0];
-
       if (!file) throw "Emptry file";
       if (!acceptables.includes(file.type)) throw "Invalid Image file.";
-      if (file.size > 1024*1024*1024) throw "Overflow maximum file size (1GB).";
+      if (file.size > 32*1024*1024) throw "Overflow maximum file size (32MB).";
+      setAvatar (file);
       const reader = new window.FileReader()
       reader.readAsDataURL(file);
       reader.onloadend = () => {
@@ -75,7 +71,20 @@ const Evangilists = () => {
   const _submitRegister = async () => {
     try {
       setIsLoading (true);
-      const _avatar = preview ? await uploadToPinata(preview) : "";
+      // const _avatar = preview ? await uploadToPinata(preview) : "";
+      const formData = new FormData();
+      //@ts-ignore
+      formData.append("image", avatar);
+
+      const { data: { url: _avatar } } = await fetch(
+        // "https://api.imgbb.com/1/upload?key=d36eb6591370ae7f9089d85875e56b22",
+        `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, 
+        {
+          method: "POST",
+          body: formData
+        }
+      ).then(res => res.json());
+
       const data = { fullName, company, website, twitter, facebook, instagram, farcaster, lens, bio, linkedin, avatar: _avatar };
       await signUp (data);
       router.push("/profile");
@@ -102,34 +111,7 @@ const Evangilists = () => {
       showToast ("Input your company name", "warning");
       valid = false;
     }
-    if (!website) {
-      showToast ("Input your website link", "warning");
-      valid = false;
-    }
-    if (!twitter) {
-      showToast ("Input your twitter link", "warning");
-      valid = false;
-    }
-    if (!facebook) {
-      showToast ("Input your facebook link", "warning");
-      valid = false;
-    }
-    if (!instagram) {
-      showToast ("Input your instagram link", "warning");
-      valid = false;
-    }
-    if (!linkedin) {
-      showToast ("Input your linkedin link", "warning");
-      valid = false;
-    }
-    if (!farcaster) {
-      showToast ("Input your farcaster link", "warning");
-      valid = false;
-    }
-    if (!lens) {
-      showToast ("Input your lens link", "warning");
-      valid = false;
-    }
+
     if (!bio) {
       showToast ("Input your Bio", "warning");
       valid = false;
@@ -206,7 +188,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setInstagram (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input Instagram link"
           />
         </section>
@@ -219,7 +201,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setWebsite (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Website link"
           />
           <InputInfo
@@ -229,7 +211,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setLinkedin (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input Linkedin link"
           />
         </section>
@@ -242,7 +224,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setTwitter (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Twitter link"
           />
           <InputInfo
@@ -252,7 +234,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFacebook (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Facebook link"
           />
         </section>
@@ -264,7 +246,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFarcaster (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Farcaster link"
           />
           <InputInfo
@@ -274,7 +256,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setLens (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your lens link"
           />
         </section>
@@ -301,4 +283,4 @@ const Evangilists = () => {
   );
 };
 
-export default Evangilists;
+export default Create;

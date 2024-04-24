@@ -30,7 +30,6 @@ const AuthProvider = ({
 }: Readonly<{ children: React.ReactNode }>) => {
   //hooks
   const { address, chain, signer, isConnected, isConnecting, isReconnecting, connector, isDisconnected, chainId } = useActiveWeb3();
-  const { requestChallengeAsync } = useAuthRequestChallengeEvm();
   const { signMessageAsync } = useSignMessage();
   const { showToast } = useToastr ();
   const api = useAPI ();
@@ -105,7 +104,7 @@ const AuthProvider = ({
       const { id, message, profileId }: TMsg = msgData;
       
       if (!id || !message || !profileId) { 
-        throw "not defined message"
+        throw "Not Defined Message"
       }
       
       const signature = await signMessageAsync({ message });
@@ -116,6 +115,7 @@ const AuthProvider = ({
       
       if (status === "SUCCESS") {
         const { data: _user }: any = jwt.decode(payload);
+        console.log(_user);
         if (_user) {
           _setAuth (_user, payload);
           showToast ("Profile created Successfully.", "success");

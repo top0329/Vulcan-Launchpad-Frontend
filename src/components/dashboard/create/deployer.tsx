@@ -43,7 +43,8 @@ import {
   lensAtom,
   tokenPriceAtom,
   icoAtom,
-  amountAtom
+  amountAtom,
+  nameAtom
 } from "@/store";
 import { formatEther, formatUnits, parseEther, parseUnits, toEventHash } from "viem";
 import useActiveWeb3 from "@/hooks/useActiveWeb3";
@@ -74,6 +75,7 @@ const Create = ({ step, setStep }: IProps) => {
   const [lens,] = useAtom<string>(lensAtom);
   const [ico, setIco] = useAtom<string>(icoAtom);
   const [, setAmount] = useAtom<string>(amountAtom);
+  const [, setTokenName] = useAtom<string>(nameAtom); 
   //states
   const [isInvalid, setIsInvalid] = React.useState<boolean>(false);
   const [isInvalidTokenAddress, setIsInvalidTokenAddress] = React.useState<boolean>(false);
@@ -153,6 +155,13 @@ const Create = ({ step, setStep }: IProps) => {
       setIsInvalidTokenAddress(true);
     }
   }, [name, symbol, decimals, totalSupply]);
+
+  React.useEffect(() => {
+    if (symbol && symbol?.status === "success") {
+      setTokenName (String(symbol.result));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol])
 
   // @get ETH price from chainbase
   React.useEffect(() => {
@@ -261,9 +270,47 @@ const Create = ({ step, setStep }: IProps) => {
       console.log(err);
     }
   };
+  //@dev deposit token amount to reach softcap
+  const _depositAmountToSoftcap = React.useMemo(() => {
+    const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
+    if(isNaN(_priceRaw)) return BigInt("0");
+    const _price =  parseEther(_priceRaw.toFixed(20));
+    
+    if (String(_price) === "0") return BigInt("0");
+    
+    const _softcap = parseEther(softCap);
+    const _amount = _softcap / _price;
+
+    return _amount + BigInt("1");
+  }, [currency, price, ethPrice, softCap]);
+  //@dev deposit token amount to reach hardcap
+  const _depositAmountToHardcap = React.useMemo(() => {
+    const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
+    if(isNaN(_priceRaw)) return BigInt("0");
+    const _price =  parseEther(_priceRaw.toFixed(20));
+    
+    if (String(_price) === "0") return BigInt("0");
+    
+    const _hardcap = parseEther(hardCap);
+    const _amount = _hardcap / _price;
+
+    return _amount + BigInt("1");
+  }, [currency, price, ethPrice, hardCap]);
+  // @dev totalSupply
+  const _totalSupply = React.useMemo(() => {
+    if (totalSupply?.status !== 'success' || totalSupply === undefined || decimals?.status !== 'success' || decimals === undefined) {
+      return BigInt("0");
+    } else {
+      return BigInt(formatUnits(
+        BigInt(String(totalSupply.result)),
+        Number(decimals?.result)
+      ));
+    }
+  }, [totalSupply, decimals])
 
   // @deploy smart contract with informations
   const handleSubmit = async () => {
+
     if (!decimals || !totalSupply || !name || !symbol) return;
 
     const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
@@ -336,12 +383,25 @@ const Create = ({ step, setStep }: IProps) => {
       setStepper (3);
       setPercent (0);
 
-      // @step3 deploy smart contract to chain
+      ///@step3 deploy smart contract to chain
+      console.log({
+        _projectURI,
+        _softcap,
+        _hardcap,
+        time: BigInt(Math.floor(Number(endTime)/1000)),
+        name: name.result,
+        symbol: symbol.result,
+        _price,
+        _decimals,
+        _totalSupply,
+        tokenAddress,
+        cyptoSIDAO
+      })
       const _tx = await contractFactory?.launchNewICO (
         _projectURI,
         _softcap,
         _hardcap,
-        BigInt(Math.floor(new Date(endTime).getTime()/1000)),
+        BigInt(Math.floor(Number(endTime)/1000)),
         name.result,
         symbol.result,
         _price,
@@ -352,7 +412,7 @@ const Create = ({ step, setStep }: IProps) => {
       );
       await _tx.wait();
       setPaid (false);
-      showToast ("ICO successfully launched.", "success");
+      showToast ("ICO ready to launch, please now deposit tokens to be distributed.", "success");
 
       const _vulcans = await contractFactory?.getVulcans ();
       setIco (_vulcans[_vulcans.length - 1]);
@@ -382,28 +442,7 @@ const Create = ({ step, setStep }: IProps) => {
           hash={ico}
         />
       )}
-      <h2 className="">
-        * Pays non-refundable Spam filter fee - $100 DAI to launch ICO, and
-        Depoly contract
-      </h2>
-      <div className="flex gap-2 items-end">
-        <button
-          onClick={handlePaySpamFilterFee}
-          className="py-2 text-white flex items-center gap-1 mt-3 rounded-lg hover:bg-blue-700 transition-all hover:ring-1 hover:ring-white hover bg-blue-500 text-sm font-bold px-4"
-        >
-          {isPayingSpamFilterFee ? (
-            <>
-              <Icon icon="mingcute:loading-fill" className="spin" /> Processing
-            </>
-          ) : (
-            <>
-              <Icon icon="ph:currency-eth-duotone" /> Pay Spam Filter Fee
-            </>
-          )}
-        </button>
-        {paid && <Icon icon="pajamas:check" width={30} />}
-      </div>
-      <h3 className="mt-1 px-1 text-xs">*Your DAI balance: {daiBalance}</h3>
+      
       <InputToken
         title="Token Address"
         className="mt-10"
@@ -468,6 +507,17 @@ const Create = ({ step, setStep }: IProps) => {
           </h3>
         )}
       </div>
+
+      <div className="px-2 pt-2 text-sm">
+        <h3 className="flex gap-2">
+          <span>* You need to deposit <span className="text-[15px] text-green-600 font-bold">{ String(_depositAmountToHardcap) } tokens</span> to reach your hard cap and start this ICO.</span>
+        </h3>
+        <h3 className="flex gap-2">
+          <span>* If you reach your soft cap, you will distribute <span className="text-[15px] text-green-600 font-bold">{ String(_depositAmountToSoftcap) } tokens</span> and <span className="text-[15px] text-red-600 font-bold">{String(_depositAmountToHardcap - _depositAmountToSoftcap)} tokens</span> will be returned.</span>
+        </h3>
+      </div>
+      { _depositAmountToHardcap > _totalSupply && <span className="text-red-600 text-sm mt-10 px-3">You can&apos;t reach hard cap with this token price and totalSupply.</span> }
+
       <h2 className="text-lg font-bold mt-12 mb-2">*Token Information</h2>
       <div
         id="information"
@@ -501,18 +551,34 @@ const Create = ({ step, setStep }: IProps) => {
         <InfoShower
           title="Total Supply"
           info="*what' your token's totalSupply?"
-          value={
-            totalSupply?.status === "success"
-              ? formatUnits(
-                  BigInt(String(totalSupply.result)),
-                  Number(decimals?.result)
-                )
-              : "*totalsupply"
-          }
+          value={String(_totalSupply)}
         />
       </div>
 
-      <div className="flex gap-2 justify-between items-center pr-3 mt-5">
+      <h2 className="mt-10 font-bold">
+        * Pays non-refundable Spam filter fee - $100 DAI to launch ICO, and
+        Depoly contract
+      </h2>
+      <div className="flex gap-2 items-end">
+        <button
+          onClick={handlePaySpamFilterFee}
+          className="py-2 text-white flex items-center gap-1 mt-3 rounded-lg hover:bg-blue-700 transition-all hover:ring-1 hover:ring-white hover bg-blue-500 text-sm font-bold px-4"
+        >
+          {isPayingSpamFilterFee ? (
+            <>
+              <Icon icon="mingcute:loading-fill" className="spin" /> Processing
+            </>
+          ) : (
+            <>
+              <Icon icon="ph:currency-eth-duotone" /> Pay Spam Filter Fee
+            </>
+          )}
+        </button>
+        {paid && <Icon icon="pajamas:check" width={30} />}
+      </div>
+      <h3 className="mt-1 px-1 text-xs">*Your DAI balance: {daiBalance}</h3>
+
+      <div className="flex gap-2 justify-between items-center pr-3 mt-10">
         <button
           onClick={handleSave}
           className="py-2 text-white rounded-lg hover:bg-blue-700 transition-all hover:ring-1 hover:ring-white hover bg-blue-500 text-sm font-bold px-4"

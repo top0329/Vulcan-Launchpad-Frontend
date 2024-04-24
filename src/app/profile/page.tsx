@@ -2,7 +2,7 @@
 import React from "react";
 import Header from "@/components/dashboard/header";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import Description from "@/components/dashboard/create/atoms/descriptionInput";
+import Description from "@/components/dashboard/create/atoms/multiTextInput";
 import Image from "next/image";
 import InputInfo from "@/components/dashboard/create/atoms/infoInput";
 import useToastr from "@/hooks/useToastr";
@@ -11,6 +11,7 @@ import { useSignMessage } from "wagmi";
 import useAPI from "@/hooks/useAPI";
 import { useAtom } from "jotai";
 import { uploadToPinata } from "@/utils";
+import { IMGBB_API_KEY } from "@/constants/config";
 
 import { TMsg } from "@/types/user";
 import { SERVER_URL } from '@/constants/config';
@@ -35,11 +36,12 @@ const Evangilists = () => {
   const [instagram, setInstagram] = React.useState<string>("");
   const [farcaster, setFarcaster] = React.useState<string>("");
   const [lens, setLens] = React.useState<string>("");
-  const [avatar, setAvatar] = React.useState<string>("");
+  const [avatar, setAvatar] = React.useState<File|undefined>(undefined);
   const [bio, setBio] = React.useState<string>("");
   const [preview, setPreview] = React.useState<string>("");
   const [isInvalid, setIsInvalid] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
 
   //atoms
   const [, setUser] = useAtom(userAtom);
@@ -54,10 +56,11 @@ const Evangilists = () => {
     try {
       if (!event.target.files) throw "no files";
       const file: File = event.target.files[0];
-
+      
       if (!file) throw "Emptry file";
       if (!acceptables.includes(file.type)) throw "Invalid Image file.";
-      if (file.size > 1024*1024*1024) throw "Overflow maximum file size (1GB).";
+      if (file.size > 32*1024*1024) throw "Overflow maximum file size (32MB).";
+      setAvatar (file);
       const reader = new window.FileReader()
       reader.readAsDataURL(file);
       reader.onloadend = () => {
@@ -95,11 +98,27 @@ const Evangilists = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
+  // function base64ToBlob(base64, type = 'application/octet-stream') {
+  //   return fetch(data:${type};base64,${base64}).then(res => res.blob());
+  // }
+
   const _updateProfile = async () => {
     try {
       setIsLoading (true);
-      console.log(preview)
-      const _avatar = preview ? await uploadToPinata(preview) : "";
+      // const _avatar = preview ? await uploadToPinata(preview) : "";
+      const formData = new FormData();
+      //@ts-ignore
+      formData.append("image", avatar);
+
+      const { data: { url: _avatar } } = await fetch(
+        // "https://api.imgbb.com/1/upload?key=d36eb6591370ae7f9089d85875e56b22",
+        `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, 
+        {
+          method: "POST",
+          body: formData
+        }
+      ).then(res => res.json());
+
       const { data } = await api.put("/user", { avatar: _avatar, bio, company, fullName, website, twitter, facebook, instagram, farcaster, lens, linkedin });
       setUser({ address: String(user?.address), avatar: _avatar, bio, company, fullName, website, twitter, facebook, instagram, farcaster, lens, linkedin });
       showToast ("Updated profile successfully", "success");
@@ -127,34 +146,34 @@ const Evangilists = () => {
       showToast ("Input your company name", "warning");
       valid = false;
     }
-    if (!website) {
-      showToast ("Input your website link", "warning");
-      valid = false;
-    }
-    if (!twitter) {
-      showToast ("Input your twitter link", "warning");
-      valid = false;
-    }
-    if (!facebook) {
-      showToast ("Input your facebook link", "warning");
-      valid = false;
-    }
-    if (!instagram) {
-      showToast ("Input your instagram link", "warning");
-      valid = false;
-    }
-    if (!linkedin) {
-      showToast ("Input your linkedin link", "warning");
-      valid = false;
-    }
-    if (!farcaster) {
-      showToast ("Input your farcaster link", "warning");
-      valid = false;
-    }
-    if (!lens) {
-      showToast ("Input your lens link", "warning");
-      valid = false;
-    }
+    // if (!website) {
+    //   showToast ("Input your website link", "warning");
+    //   valid = false;
+    // }
+    // if (!twitter) {
+    //   showToast ("Input your twitter link", "warning");
+    //   valid = false;
+    // }
+    // if (!facebook) {
+    //   showToast ("Input your facebook link", "warning");
+    //   valid = false;
+    // }
+    // if (!instagram) {
+    //   showToast ("Input your instagram link", "warning");
+    //   valid = false;
+    // }
+    // if (!linkedin) {
+    //   showToast ("Input your linkedin link", "warning");
+    //   valid = false;
+    // }
+    // if (!farcaster) {
+    //   showToast ("Input your farcaster link", "warning");
+    //   valid = false;
+    // }
+    // if (!lens) {
+    //   showToast ("Input your lens link", "warning");
+    //   valid = false;
+    // }
     if (!bio) {
       showToast ("Input your Bio", "warning");
       valid = false;
@@ -230,7 +249,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setInstagram (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input Instagram link"
           />
         </section>
@@ -243,7 +262,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setWebsite (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Website link"
           />
           <InputInfo
@@ -253,7 +272,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setLinkedin (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input Linkedin link"
           />
         </section>
@@ -266,7 +285,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setTwitter (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Twitter link"
           />
           <InputInfo
@@ -276,7 +295,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFacebook (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Facebook link"
           />
         </section>
@@ -288,7 +307,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFarcaster (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your Farcaster link"
           />
           <InputInfo
@@ -298,7 +317,7 @@ const Evangilists = () => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setLens (e.target.value)
             }
-            isInvalid={isInvalid}
+            isInvalid={false}
             message="Input your lens link"
           />
         </section>

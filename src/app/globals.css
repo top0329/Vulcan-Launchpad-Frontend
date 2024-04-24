@@ -61,6 +61,29 @@ body {
   border-radius: 4px;
 }
 
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: #36364993 #ffffff00;
+}
+
+.dark :root {
+  scrollbar-width: thin;
+  scrollbar-color: #363649 #ffffff00;
+}
+
+.dark .vulcan-sider {
+  scrollbar-color: #36364993 #ffffff00;
+}
+
+.vulcan-sider {
+  scrollbar-width: none;
+  scrollbar-color: #363649 #ffffff00;
+}
+
+.vulcan-sider:hover{
+  scrollbar-width: thin;
+}
+
 
 .vulcan-sider::-webkit-scrollbar {
   width: 4px;
@@ -167,5 +190,20 @@ body {
 }
 
 .react-player video {
-  border-radius: 20px;
+  border-radius: 15px;
+}
+
+.ribbon {
+  --f: 10px; /* control the folded part*/
+  --r: 15px; /* control the ribbon shape */
+  --t: 10px; /* the top offset */
+  
+  position: absolute;
+  inset: var(--t) calc(-1*var(--f)) auto auto;
+  padding: 4px 10px calc(var(--f) + 4px) calc(10px + var(--r));
+  clip-path: 
+    polygon(0 0,100% 0,100% calc(100% - var(--f)),calc(100% - var(--f)) 100%,
+      calc(100% - var(--f)) calc(100% - var(--f)),0 calc(100% - var(--f)),
+      var(--r) calc(50% - var(--f)/2));
+  /* box-shadow: 0 calc(-1*var(--f)) 0 inset #0005; */
 }

@@ -3,6 +3,7 @@ import { Datepicker } from "flowbite-react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Button } from "flowbite-react";
 import { Tooltip } from "flowbite-react";
+import useToastr from "@/hooks/useToastr";
 
 import { DayPicker } from "react-day-picker";
 
@@ -27,29 +28,29 @@ const Input = ({
   message,
   info,
 }: IProps) => {
-  const [selectedDate, setSelectedDate] = React.useState<any>(new Date());
+  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [show, setShow] = React.useState<boolean>(false);
+  const { showToast } = useToastr ();
 
   const setEndTimeAfter = (month: number) => {
     const currentDate = new Date();
     currentDate.setMonth(currentDate.getMonth() + month);
-    onChange(currentDate.toLocaleDateString());
+    setSelectedDate (currentDate);
   };
 
   const handleClear = () => {
-    onChange("");
+    setSelectedDate(new Date());
   };
 
-  // React.useEffect(() => {
-  //   if (!selectedDate) return;
-  //   onChange(selectedDate.toLocaleDateString());
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [selectedDate]);
-
-  const handleChange = (date: Date) => {
-    onChange (date.toLocaleDateString());
+  const handleAccept = () => {
+    if (!selectedDate) {
+      showToast("Please select end Time!", "warning");
+    } else {
+      const _date = selectedDate.getTime ();
+      onChange(String(_date));
+      setShow (false);
+    }
   }
-
 
   return (
     <div className={className}>
@@ -66,7 +67,7 @@ const Input = ({
         className="bg-[#F0F8FF] relative transition-all text-[12px] p-3 dark:bg-[#020111] w-full rounded-lg text-blue-gray-700 font-sans font-normal border-[#98bdea1f] outline-none focus:ring-1 focus:ring-[#8ca8cba2] focus:border-[#8ca8cba2] border"
         placeholder={placeholder}
         onClick={() => setShow(true)}
-        value={value}
+        value={selectedDate ? selectedDate.toDateString() : ""}
         onChange={() => {}}
       />
       {
@@ -76,11 +77,11 @@ const Input = ({
           <div className="pt-5 dark:bg-black bg-white z-50 relative p-4 border dark:border-gray-900 border-gray-200 rounded-xl shadow-lg">
             <DayPicker
               mode="single"
-              selected={value ? new Date(value) : new Date()}
-              onMonthChange={handleChange}
-              onSelect={(date: any) => handleChange(new Date(date))}
+              selected={selectedDate}
+              onMonthChange={setSelectedDate}
+              onSelect={(date: any) => setSelectedDate(date)}
               showOutsideDays
-              month={value ? new Date(value) : new Date()}
+              month={selectedDate}
               className="border-0"
               classNames={{
                 caption: "flex justify-center py-2 mb-4 relative items-center",
@@ -106,7 +107,7 @@ const Input = ({
                 day_hidden: "invisible",
               }}
             />
-            <div className="w-full grid grid-cols-3 gap-1 mt-5">
+            <div className="w-full grid grid-cols-2 gap-2 mt-5">
               <button
                 className="w-full text-sm p-2 font-bold rounded-lg !bg-transparent text-gray-600 dark:text-gray-300 shadow-md dark:shadow-gray-900"
                 onClick={() => setEndTimeAfter(1)}
@@ -120,7 +121,13 @@ const Input = ({
                 3 months
               </button>
               <button
-                className="w-full text-sm p-2 font-bold rounded-lg !bg-transparent text-gray-600 dark:text-gray-300 shadow-md dark:shadow-gray-900"
+                className="w-full text-xs p-2 font-bold rounded-lg bg-green-300 hover:opacity-60 dark:bg-green-900 text-gray-600 dark:text-gray-300 shadow-md dark:shadow-gray-900"
+                onClick={handleAccept}
+              >
+                ACCEPT
+              </button>
+              <button
+                className="w-full text-xs p-2 font-bold rounded-lg !bg-transparent text-gray-600 dark:text-gray-300 shadow-md dark:shadow-gray-900"
                 onClick={handleClear}
               >
                 CLEAR

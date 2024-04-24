@@ -150,6 +150,7 @@ const Card = ({ id }: IProps) => {
   }
 
   const _getICOInfo = async (_contract: Contract) => {
+    
     const _start = Date.now() / 1000;
     // token data
     _token (_contract);
@@ -376,7 +377,7 @@ const Card = ({ id }: IProps) => {
           <button className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
             <Icon icon="ph:heart-bold" width={22} className="text-[#2B6EC8]"/>
           </button>
-          <button onClick={() => router.push(`/${id}`)} className="rounded-xl truncate bg-[#2B6EC8] px-5 text-white py-3">View</button>
+          <button onClick={() => router.push(`/${id}`)} className="rounded-xl truncate bg-[#2B6EC8] px-2 text-white py-3">View</button>
           <a href={`https://sepolia.etherscan.io/address/${id}`} target="_blank" className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60 flex justify-center items-center">
             <Icon icon="ic:twotone-travel-explore" width={22} className="text-[#2B6EC8]"/>
           </a>

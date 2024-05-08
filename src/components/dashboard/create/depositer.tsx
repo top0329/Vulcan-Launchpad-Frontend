@@ -1,24 +1,28 @@
 "use client";
 import React from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { Tooltip } from 'flowbite-react';
+import { Tooltip } from '@nextui-org/react';
 import Image from "next/image";
 // hooks
 import useAuth from "@/hooks/useAuth";
 import useToastr from "@/hooks/useToastr";
 import { useRouter } from "next/navigation";
+import { useAtom } from "jotai";
 // components
 import ClipboardCopier from "@/components/share/clipCopier";
 import QRcode from "react-qr-code";
 // utils
 import { copyToClipboard } from "@/utils";
-// jotai
-import { useAtom } from "jotai";
+// atoms
 import {
   icoAtom,
   amountAtom,
   nameAtom
 } from "@/store";
+// constants
+import { CHAIN_DATA } from "@/constants/constants";
+import { useActiveModifiers } from "react-day-picker";
+import useActiveWeb3 from "@/hooks/useActiveWeb3";
 
 interface IProps {
   step: number,
@@ -33,6 +37,7 @@ const Create = ({ step, setStep }: IProps) => {
   const { showToast } = useToastr ();
   const { user, isAuthenticated } = useAuth ();
   const [tokenName] = useAtom (nameAtom);
+  const { chain } = useActiveWeb3 ();
   //router
   const router  = useRouter ();
   
@@ -55,11 +60,11 @@ const Create = ({ step, setStep }: IProps) => {
 
       <div className="dark:text-white text-black text-sm mt-8 flex gap-1 items-center justify-center">
         <span onClick={handleCopyAddress} className="hover:underline cursor-pointer w-[100px] xs:w-auto truncate" >{ico}</span> 
-        <Tooltip content="Copy address" style="dark">
+        <Tooltip className="relative z-50 bg-black text-white p-2" content="Copy address">
           <ClipboardCopier size={22} text={ico}/>
         </Tooltip>
-        <Tooltip content="Go to chain" style="dark">
-          <a href={`https://sepolia.etherscan.io/address/${ico}`} target="_blank"><Icon className='cursor-pointer' icon="fluent:open-16-filled" width={22} /></a>
+        <Tooltip className="relative z-50 bg-black text-white p-2" content="Go to chain">
+          <a href={`${CHAIN_DATA[String(chain?.id)]?.explorer}/address/${ico}`} target="_blank"><Icon className='cursor-pointer' icon="fluent:open-16-filled" width={22} /></a>
         </Tooltip>
       </div>
 

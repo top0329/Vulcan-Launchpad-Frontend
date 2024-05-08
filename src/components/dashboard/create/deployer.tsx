@@ -5,11 +5,12 @@ import InputInfo from "@/components/dashboard/create/atoms/infoInput";
 import InputToken from "@/components/dashboard/create/atoms/tokenAddressInput";
 import InfoShower from "@/components/dashboard/create/atoms/infoShower";
 import { reduceAmount, parseNumber } from "@/utils";
-import { Dropdown } from "flowbite-react";
-import { useAtom } from "jotai";
-import { useReadContracts, useReadContract } from "wagmi";
+import {Dropdown, DropdownTrigger, DropdownMenu, DropdownItem} from "@nextui-org/react";
+
 import { Contract, ethers } from "ethers";
 //hooks
+import { useReadContracts, useReadContract } from "wagmi";
+import { useAtom } from "jotai";
 import useToastr from "@/hooks/useToastr";
 import useAuth from "@/hooks/useAuth";
 //abis
@@ -93,7 +94,7 @@ const Create = ({ step, setStep }: IProps) => {
   //web3
   const { address, chainId, signer } = useActiveWeb3();
   //eth price
-  const [ethPrice, setEthPrice] = React.useState<number | undefined>(undefined);
+  const [ethPrice, setEthPrice] = React.useState<number>(3000);
   //useContracts
   const { data: token, isPending: tokenPending } = useReadContracts({
     contracts: [
@@ -195,11 +196,20 @@ const Create = ({ step, setStep }: IProps) => {
   // @dev pay 100DAI of spam filter fee
   const handlePaySpamFilterFee = async () => {
 
+    if (Number(daiBalance) < 100) {
+      showToast ("Insufficient DAI balance.", "warning");
+      return;
+    }
+
     const _isPaid = await contractFactory?.paidSpamFilterFee(address);
     setPaid (_isPaid);
 
     if (_isPaid) {
       showToast ("You have already paid spam filter fee.", "success");
+      return;
+    }
+
+    if (isPayingSpamFilterFee) {
       return;
     }
 
@@ -262,6 +272,15 @@ const Create = ({ step, setStep }: IProps) => {
         showToast("Token Price is required.", "warning");
         valid = false;
       }
+      if (!decimals || !totalSupply || !name || !symbol) {
+        showToast ("Invalid token information", "warning");
+        valid = false;
+      };
+    
+      if (Number(price) === 0 || Number(ethPrice) === 0 || isNaN(Number(price)) || isNaN(Number(ethPrice))) {
+        showToast("Invalid Token price.", "warning");
+        valid = false;
+      } 
       if (valid && preview) {
         handleSubmit();
       }
@@ -270,30 +289,32 @@ const Create = ({ step, setStep }: IProps) => {
       console.log(err);
     }
   };
+
   //@dev deposit token amount to reach softcap
   const _depositAmountToSoftcap = React.useMemo(() => {
-    const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
-    if(isNaN(_priceRaw)) return BigInt("0");
-    const _price =  parseEther(_priceRaw.toFixed(20));
-    
-    if (String(_price) === "0") return BigInt("0");
-    
+    if (Number(price) === 0 || Number(ethPrice) === 0 || isNaN(Number(price)) || isNaN(Number(ethPrice))) {
+      return BigInt("0");
+    } 
+    const _price: bigint = currency === 'ETH' ? parseEther(price) : parseEther(price) / BigInt(Math.ceil(ethPrice));
+    if (_price === BigInt("0")) {
+      return BigInt("0");
+    }
     const _softcap = parseEther(softCap);
     const _amount = _softcap / _price;
-
     return _amount + BigInt("1");
   }, [currency, price, ethPrice, softCap]);
+
   //@dev deposit token amount to reach hardcap
   const _depositAmountToHardcap = React.useMemo(() => {
-    const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
-    if(isNaN(_priceRaw)) return BigInt("0");
-    const _price =  parseEther(_priceRaw.toFixed(20));
-    
-    if (String(_price) === "0") return BigInt("0");
-    
+    if (Number(price) === 0 || Number(ethPrice) === 0 || isNaN(Number(price)) || isNaN(Number(ethPrice))) {
+      return BigInt("0");
+    } 
+    const _price: bigint = currency === 'ETH' ? parseEther(price) : parseEther(price) / BigInt(Math.ceil(ethPrice));
+    if (_price === BigInt("0")) {
+      return BigInt("0");
+    }
     const _hardcap = parseEther(hardCap);
     const _amount = _hardcap / _price;
-
     return _amount + BigInt("1");
   }, [currency, price, ethPrice, hardCap]);
   // @dev totalSupply
@@ -311,16 +332,17 @@ const Create = ({ step, setStep }: IProps) => {
   // @deploy smart contract with informations
   const handleSubmit = async () => {
 
+    setIco ("");
+
     if (!decimals || !totalSupply || !name || !symbol) return;
 
-    const _priceRaw: number = currency === "ETH" ? Number(price) : Number(price) / Number(ethPrice);
-    const _price =  parseEther(_priceRaw.toFixed(20));
+    const _price: bigint = currency === 'ETH' ? parseEther(price) : parseEther(price) / BigInt(Math.ceil(ethPrice));
     const _totalSupply = BigInt(String(totalSupply.result));
     const _hardcap = parseEther(hardCap);
     const _decimals = BigInt(String(decimals.result));
     const _softcap = parseEther(softCap);
 
-    console.log(_price * _totalSupply / parseUnits ("1", Number(_decimals)), _hardcap);
+    
     // test if totalSupply and tokenPrice is valid
     if (_price * _totalSupply / parseUnits ("1", Number(_decimals)) < _hardcap ) {
       showToast ("Can't reach hardcap with this price and totalSupply", "warning");
@@ -328,8 +350,13 @@ const Create = ({ step, setStep }: IProps) => {
     }
 
     // set amount
-    const _amount = _hardcap / _price ;
+    const _amount = _hardcap / _price + BigInt("1");
     setAmount (String(_amount));
+    console.log("setting", {
+      _amount,
+      _price,
+      _hardcap
+    });
 
     // progress Modal show
     setShowProgressModal(true);
@@ -338,6 +365,7 @@ const Create = ({ step, setStep }: IProps) => {
       // @step1 upload logo to PINATA
       setStepper (1);
       setPercent (0);
+      console.log(preview)
       const _logoURI = await uploadToPinata(
         preview?.data as string,
         ({ loaded, total }: { loaded: number; total: number }) => {
@@ -366,7 +394,6 @@ const Create = ({ step, setStep }: IProps) => {
         lens
       });
       const _projectURI = await uploadToIPFS(
-        //@ts-ignore
         new File(
           [
             _projectInfo
@@ -388,13 +415,14 @@ const Create = ({ step, setStep }: IProps) => {
         _projectURI,
         _softcap,
         _hardcap,
-        time: BigInt(Math.floor(Number(endTime)/1000)),
+        time: Math.floor(Number(endTime)/1000),
         name: name.result,
         symbol: symbol.result,
         _price,
         _decimals,
         _totalSupply,
         tokenAddress,
+        wallet,
         cyptoSIDAO
       })
       const _tx = await contractFactory?.launchNewICO (
@@ -402,12 +430,14 @@ const Create = ({ step, setStep }: IProps) => {
         _softcap,
         _hardcap,
         BigInt(Math.floor(Number(endTime)/1000)),
+        // BigInt(Math.floor(Date.now()/1000) + 7200),
         name.result,
         symbol.result,
         _price,
         _decimals,
         _totalSupply,
         tokenAddress,
+        wallet,
         cyptoSIDAO
       );
       await _tx.wait();
@@ -431,6 +461,14 @@ const Create = ({ step, setStep }: IProps) => {
       setIsLoading (false);
     }
   };
+
+  const onChangeTokenPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (Number(value) < 0 || isNaN(Number(value)) || value.length > 18) {
+      return;
+    }
+    setPrice(value)
+  }
 
   return (
     <div className="w-full">
@@ -475,24 +513,29 @@ const Create = ({ step, setStep }: IProps) => {
           placeholder="*token price"
           info="What' token price for ICO?"
           value={price}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setPrice(e.target.value)
-          }
+          onChange={onChangeTokenPrice}
           isInvalid={isInvalid}
           message="input token price"
         />
-        <Dropdown
-          label="Dropdown button"
-          renderTrigger={() => (
+        <Dropdown className="dark:bg-gray-800">
+          <DropdownTrigger>
             <div className="w-[100px] mt-[18px]">
               <div className="bg-[#F0F8FF] flex justify-between items-center cursor-pointer transition-all text-[12px] p-3 dark:bg-[#020111] w-full rounded-lg text-blue-gray-700 font-sans font-normal border-[#98bdea1f] outline-none focus:ring-1 focus:ring-[#8ca8cba2] focus:border-[#8ca8cba2] border">
                 <span>{currency}</span> <Icon icon="iwwa:arrow-down" />
               </div>
             </div>
-          )}
-        >
-          <Dropdown.Item onClick={() => setCurrency("ETH")}>ETH</Dropdown.Item>
-          <Dropdown.Item onClick={() => setCurrency("USD")}>USD</Dropdown.Item>
+          </DropdownTrigger>
+          <DropdownMenu 
+            aria-label="Single selection example"
+            variant="flat"
+            disallowEmptySelection
+            selectionMode="single"
+            selectedKeys={[currency]}
+            // onSelectionChange={setSelectedKeys}
+          >
+            <DropdownItem key={'ETH'} className={`${currency === 'ETH' && 'font-bold !text-gray-500'} text-gray-300 text-xs`} onClick={() => setCurrency("ETH")}>ETH</DropdownItem >
+            <DropdownItem key={'USD'} className={`${currency === 'USD' && 'font-bold !text-gray-500'} text-gray-300 text-xs`} onClick={() => setCurrency("USD")}>USD</DropdownItem >
+          </DropdownMenu>
         </Dropdown>
       </div>
       <div className="flex flex-row-reverse justify-between">

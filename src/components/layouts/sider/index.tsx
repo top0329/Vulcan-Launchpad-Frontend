@@ -8,6 +8,7 @@ import useAuth from "@/hooks/useAuth";
 import useActiveWeb3 from "@/hooks/useActiveWeb3";
 import { copyToClipboard } from "@/utils";
 import useToastr from "@/hooks/useToastr";
+import { CHAIN_DATA } from "@/constants/constants";
 
 interface INav {
   title: string;
@@ -46,8 +47,8 @@ const Sider = () => {
   const [current, setCurrent] = React.useState<string>("Dashboard");
   const [isCollapse, setIsCollapse] = React.useState<boolean>(true);
   //web3
-  const { address } = useActiveWeb3();
-  //hoos
+  const { address, chain } = useActiveWeb3();
+  //hooks
   const { showToast } = useToastr();
 
   const _renderThemeSwitch = () => (
@@ -131,11 +132,11 @@ const Sider = () => {
       )}
       <div
         className={`fixed ${
-          isCollapse ? "-left-[260px]" : "left-4"
-        } transition-all duration-200 bottom-4 z-20 top-4 md:static md:flex md:overflow-auto flex-none flex-col justify-between bg-white dark:bg-[#100E28] w-[260px] border-2 border-[#E3E3E3] dark:border-[#100E28] rounded-xl sider`}
+          isCollapse ? "-left-[300px]" : "left-4"
+        } transition-all duration-200 bottom-4 z-20 top-4 md:static md:flex md:overflow-auto flex-none flex-col justify-between bg-white dark:bg-[#100E28] w-[300px] border-2 border-[#E3E3E3] dark:border-[#100E28] rounded-xl sider`}
       >
         <div className="w-full h-full overflow-y-scroll overflow-x-hidden vulcan-sider">
-          <div className="w-[260px]">
+          <div className="w-[300px]">
             <section id="sider-info" className="">
               <div className="flex justify-center items-center border-b-2 border-[#E3E3E3] dark:border-[#100E28] p-6">
                 <Image
@@ -152,7 +153,6 @@ const Sider = () => {
               </div>
               <div className="flex justify-center items-center flex-col mt-4">
                 {user && user.avatar ? (
-                  // <Avatar img={user.avatar} className="h-[70px] w-[70px]" /> :
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={user.avatar}
@@ -199,16 +199,16 @@ const Sider = () => {
                       onClick={handleCopyAddress}
                       className="hover:underline cursor-pointer"
                     >
-                      {address.substring(0, 10) +
+                      {address.substring(0, 13) +
                         "...." +
-                        address.substr(address.length - 10, 10)}
+                        address.substr(address.length - 13, 13)}
                     </span>{" "}
                     <Icon
                       className="cursor-pointer"
                       width={15}
                       onClick={() =>
                         window.open(
-                          "https://sepolia.etherscan.io/address/" + address
+                          `${CHAIN_DATA[String(chain?.id)]?.explorer}/address/` + address
                         )
                       }
                       height={15}

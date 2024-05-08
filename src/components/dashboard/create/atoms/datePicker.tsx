@@ -1,8 +1,6 @@
 import React from "react";
-import { Datepicker } from "flowbite-react";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { Button } from "flowbite-react";
-import { Tooltip } from "flowbite-react";
+import { Tooltip } from "@nextui-org/react";
 import useToastr from "@/hooks/useToastr";
 
 import { DayPicker } from "react-day-picker";
@@ -16,6 +14,7 @@ interface IProps {
   message: string;
   isInvalid: boolean;
   info: string;
+  time: string
 }
 
 const Input = ({
@@ -27,6 +26,7 @@ const Input = ({
   isInvalid,
   message,
   info,
+  time
 }: IProps) => {
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [show, setShow] = React.useState<boolean>(false);
@@ -34,6 +34,8 @@ const Input = ({
 
   const setEndTimeAfter = (month: number) => {
     const currentDate = new Date();
+    currentDate.setHours(0);
+    currentDate.setMinutes(0);
     currentDate.setMonth(currentDate.getMonth() + month);
     setSelectedDate (currentDate);
   };
@@ -46,8 +48,13 @@ const Input = ({
     if (!selectedDate) {
       showToast("Please select end Time!", "warning");
     } else {
-      const _date = selectedDate.getTime ();
-      onChange(String(_date));
+      const _date = selectedDate;
+      const [_hours, _minutes] = time.split(":");
+      const hours = Number(_hours);
+      const minutes = Number(_minutes);
+      _date.setHours(hours);
+      _date.setMinutes(minutes);
+      onChange(String(_date.getTime ()));
       setShow (false);
     }
   }
@@ -56,7 +63,7 @@ const Input = ({
     <div className={className}>
       <div className="px-1 py-1 font-bold truncate flex gap-1 items-center">
         {title}
-        <Tooltip className="relative z-50" content={info}>
+        <Tooltip className="relative z-50 bg-black text-white p-2" content={info}>
           <Icon
             icon="ep:info-filled"
             className="text-[#9A9FA5] cursor-pointer hover:opacity-60"

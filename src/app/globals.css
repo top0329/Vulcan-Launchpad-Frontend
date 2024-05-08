@@ -189,9 +189,18 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.introduction video {
+  border-radius: 0px 0px 15px 15px!important;
+}
+
 .react-player video {
   border-radius: 15px;
 }
+
+.preview video {
+  border-radius: 10px;
+}
+
 
 .ribbon {
   --f: 10px; /* control the folded part*/

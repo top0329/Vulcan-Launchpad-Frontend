@@ -12,9 +12,14 @@ import { useAtom } from "jotai";
 import { IMGBB_API_KEY } from "@/constants/config";
 import Loader from "@/components/share/loading";
 const Description = dynamic(() => import("@/components/dashboard/create/atoms/descriptionInput"), {ssr: false});
+import { uploadToPinata } from "@/utils";
 
 import { isAuthenticatedAtom, userAtom } from "@/store/user";
 import useAuth from "@/hooks/useAuth";
+// router
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Router } from "next/router";
+import path from "path";
 
 const acceptables = ["image/png", "image/jpg", "image/jpeg", "image/webp"];
 
@@ -44,6 +49,17 @@ const Evangilists = () => {
   const { showToast } = useToastr();
   const api = useAPI();
   const { address, chain, isConnected, chainId } = useActiveWeb3();
+  // router
+  const router = useRouter ();
+  const searchParams = useSearchParams ();
+  const pathname = usePathname ();
+  const edit = searchParams.get("edit") === "true" ? true : false;
+
+  // handle editable
+  const _handleEdit = () => {
+    router.push(`${pathname}?edit=${!edit}`); 
+  }
+  
 
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -74,10 +90,11 @@ const Evangilists = () => {
   };
 
   React.useEffect(() => {
+    if (!isAuthenticated) return;
     (async () => {
       try {
         setFetching (true);
-        const { data } = await api.get("/user");
+        const { data } = await api.get("/user/me");
         const {
           avatar,
           bio,
@@ -90,7 +107,7 @@ const Evangilists = () => {
           instagram,
           farcaster,
           lens,
-        } = data.data;
+        } = data;
         setAvatar(avatar ?? "");
         setBio(bio);
         setCompany(company);
@@ -121,15 +138,27 @@ const Evangilists = () => {
       let _avatar = avatar;
 
       if (newAvatar) {
-        const formData = new FormData();
-        formData.append("image", newAvatar);
-        const {
-          data: { url: _newAvatar },
-        } = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-          method: "POST",
-          body: formData,
-        }).then((res) => res.json());
-        _avatar = _newAvatar;
+
+        const _logoURI = await uploadToPinata(
+          preview as string,
+          // ({ loaded, total }: { loaded: number; total: number }) => {
+          //   console.log(Math.floor((loaded * 100) / total));
+          //   setPercent(Math.floor((loaded * 100) / total));
+          // }
+        ).catch((err) => {
+          console.log(err);
+          throw "File upload failed to IPFS. Please retry.";
+        });
+
+        // const formData = new FormData();
+        // formData.append("image", newAvatar);
+        // const {
+        //   data: { url: _newAvatar },
+        // } = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        //   method: "POST",
+        //   body: formData,
+        // }).then((res) => res.json());
+        _avatar = _logoURI;
       }
 
       await api.put("/user", {
@@ -181,7 +210,8 @@ const Evangilists = () => {
       if (!isConnected) {
         showToast("Connect your wallet!", "warning");
       } else {
-        _updateProfile();
+        await _updateProfile();
+        router.push(`${pathname}?edit=${false}`) 
       }
     }
   };
@@ -192,11 +222,16 @@ const Evangilists = () => {
       <h1 className="text-lg px-1">Profile</h1>
       <Loader loading={fetching}>
         <div className="dark:bg-[#100E28] bg-white px-3 xs:px-6 py-6 rounded-xl">
-          <div className="flex gap-3 items-center">
-            <div className="bg-[#4285EC] w-3 h-6 rounded-sm"></div>
-            <h3 className="dark:text-[#CCCCCC] text-[#1A1D1F]">
-              Profile information
-            </h3>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-3 items-center">
+              <div className="bg-[#4285EC] w-3 h-6 rounded-sm"></div>
+              <h3 className="dark:text-[#CCCCCC] text-[#1A1D1F]">
+                Profile information
+              </h3>
+            </div>
+            <div onClick={_handleEdit} className="gap-1 flex items-center text-sm cursor-pointer hover:underline hover:opacity-60">
+              <Icon icon="solar:user-id-bold" className="text-2xl"/>EDIT PROFILE
+            </div>
           </div>
           <section className="mt-5 flex gap-3 items-center">
             { 
@@ -235,12 +270,14 @@ const Evangilists = () => {
           <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mt-5">
             <InputInfo
               title="Display Name"
+              info="*What&apos; your name?"
               placeholder="*Enter your Display Name"
               value={fullName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setFullName(e.target.value)
               }
               isInvalid={isInvalid}
+              readOnly={!edit}
               message="Input fullName"
             />
           </section>
@@ -253,6 +290,8 @@ const Evangilists = () => {
                 setCompany(e.target.value)
               }
               isInvalid={isInvalid}
+              readOnly={!edit}
+              info="*What&apos; your Company name?"
               message="Input your company name"
             />
             <InputInfo
@@ -263,6 +302,8 @@ const Evangilists = () => {
                 setInstagram(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Instagram Link?"
               message="Input Instagram link"
             />
           </section>
@@ -276,6 +317,8 @@ const Evangilists = () => {
                 setWebsite(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Website Link?"
               message="Input your Website link"
             />
             <InputInfo
@@ -286,6 +329,8 @@ const Evangilists = () => {
                 setLinkedin(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Linkedin link?"
               message="Input Linkedin link"
             />
           </section>
@@ -299,6 +344,8 @@ const Evangilists = () => {
                 setTwitter(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Twitter link?"
               message="Input your Twitter link"
             />
             <InputInfo
@@ -309,6 +356,8 @@ const Evangilists = () => {
                 setFacebook(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Facebook link?"
               message="Input your Facebook link"
             />
           </section>
@@ -321,6 +370,8 @@ const Evangilists = () => {
                 setFarcaster(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Farcaster Link?"
               message="Input your Farcaster link"
             />
             <InputInfo
@@ -331,12 +382,15 @@ const Evangilists = () => {
                 setLens(e.target.value)
               }
               isInvalid={false}
+              readOnly={!edit}
+              info="*What&apos; your Lens account?"
               message="Input your lens link"
             />
           </section>
 
           <Description
             title="Bio"
+            readOnly={!edit}
             className="mt-5 bio"
             placeholder="*Enter Bio..."
             info="what' your short description"

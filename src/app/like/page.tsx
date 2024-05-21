@@ -139,8 +139,8 @@ export default function Home() {
     <div className="flex w-full flex-col gap-4">
       <Header/>
       <Filter data={metaData} onChange={onChange} filters={["All", "Await Deposit", "Progress", "Failed", "Success"]}/>
-      {/* <DashboardHeader/> */}
-      <h1 className="text-[#141416] dark:text-[#FAFCFF] text-lg py-4 px-1">My Dashboard</h1>
+      <DashboardHeader/>
+      <h1 className="text-[#141416] dark:text-[#FAFCFF] text-lg pb-4 px-1">My Dashboard</h1>
       {
         !user ?
         <div className="flex w-full justify-center mt-20">

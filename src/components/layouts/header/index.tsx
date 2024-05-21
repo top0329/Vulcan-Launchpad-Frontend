@@ -13,6 +13,7 @@ import {
   DropdownItem,
   Button,
 } from "@nextui-org/react";
+// jotai
 import { useAtom } from "jotai";
 import { keywordAtom } from "@/store/icos";
 
@@ -20,8 +21,8 @@ const Header = () => {
   const [keyword, setKeyword] = useAtom<string>(keywordAtom);
 
   return (
-    <div className="flex items-center flex-none gap-3 sm:gap-6 p-4 text-black dark:text-white w-full justify-between bg-white dark:bg-[#100E28] border-2 border-[#E3E3E3] dark:border-[#100E28] rounded-xl">
-      <ul className="hidden sm:flex md:hidden lg:flex text-sm text-[#777E90] dark:text-white items-center gap-9">
+    <div className="flex items-center flex-none gap-3 sm:gap-6 p-4 text-black dark:text-white w-full justify-end bg-white dark:bg-[#100E28] border-2 border-[#E3E3E3] dark:border-[#100E28] rounded-xl">
+      {/* <ul className="hidden sm:flex md:hidden lg:flex text-sm text-[#777E90] dark:text-white items-center gap-9">
         <li className="cursor-pointer hover:opacity-60 truncate">Discover</li>
         <li className="cursor-pointer hover:opacity-60 truncate">
           How it work
@@ -49,13 +50,13 @@ const Header = () => {
             How it work
           </DropdownItem>
         </DropdownMenu>
-      </Dropdown>
+      </Dropdown> */}
 
       <div className="flex gap-1 sm:gap-6 items-center">
-        <div className="relative mr-2">
+        {/* <div className="relative mr-2">
           <Icon icon="ph:bell-thin" width={22} />
           <div className="absolute inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-[#45B26B] border-2 border-white rounded-full -top-2 -end-2 dark:border-gray-900"></div>
-        </div>
+        </div> */}
         <div className="relative">
           <svg
             xmlns="http://www.w3.org/2000/svg"

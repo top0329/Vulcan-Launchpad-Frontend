@@ -10,14 +10,17 @@ export interface IToken {
 export interface IProject {
   title: string;
   description: string;
-  logo: string;
+  logo: {
+    url: string,
+    type: string
+  };
+  youtubeLink: string;
   twitter?: string;
   instagram?: string;
   linkedin?: string;
   facebook?: string;
   farcaster?: string;
   lens?: string;
-  youtubeLink?: string;
 }
 
 // export interface IUser {

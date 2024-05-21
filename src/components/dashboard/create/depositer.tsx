@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 // components
 import ClipboardCopier from "@/components/share/clipCopier";
-import QRcode from "react-qr-code";
+import { QRCode } from 'react-qrcode-logo';
 // utils
 import { copyToClipboard } from "@/utils";
 // atoms
@@ -60,27 +60,16 @@ const Create = ({ step, setStep }: IProps) => {
 
       <div className="dark:text-white text-black text-sm mt-8 flex gap-1 items-center justify-center">
         <span onClick={handleCopyAddress} className="hover:underline cursor-pointer w-[100px] xs:w-auto truncate" >{ico}</span> 
-        <Tooltip className="relative z-50 bg-black text-white p-2" content="Copy address">
-          <ClipboardCopier size={22} text={ico}/>
-        </Tooltip>
+        
+        <ClipboardCopier size={22} text={ico}/>
+        
         <Tooltip className="relative z-50 bg-black text-white p-2" content="Go to chain">
           <a href={`${CHAIN_DATA[String(chain?.id)]?.explorer}/address/${ico}`} target="_blank"><Icon className='cursor-pointer' icon="fluent:open-16-filled" width={22} /></a>
         </Tooltip>
       </div>
 
-      <div className='w-full flex justify-center relative mt-5'>
-          <QRcode
-            value={ico}
-            width={100}
-            height={100}
-          />
-          <Image
-            src={'/favicon.svg'}
-            width={60}
-            height={60} 
-            alt={"logo"}
-            className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'  
-          />
+      <div className='w-full flex justify-center mt-5'>
+        <div className="p-3 rounded-md bg-white"><QRCode quietZone={0} value={ico} logoImage={"/favicon.svg"} size={200} logoWidth={45} logoHeight={30}/></div>
       </div>
      
       <div className="flex gap-2 justify-between items-center pr-3 mt-5">

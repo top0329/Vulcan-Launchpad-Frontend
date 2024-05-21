@@ -17,6 +17,7 @@
     "framer-motion": "^11.1.7",
     "install": "^0.13.0",
     "jotai": "^2.7.2",
+    "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "next": "14.1.4",
     "next-themes": "^0.3.0",
@@ -30,13 +31,14 @@
     "react-dropzone": "^14.2.3",
     "react-hot-toast": "^2.4.1",
     "react-player": "^2.16.0",
-    "react-qr-code": "^2.0.12",
+    "react-qrcode-logo": "^2.10.0",
     "react-quill": "^2.0.0",
     "react-time-picker-typescript": "^1.2.3",
     "viem": "^2.9.9",
     "wagmi": "^2.5.19"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
     "@types/react": "^18",

@@ -9,6 +9,11 @@ import { Skeleton } from "@nextui-org/react";
 import { Contract } from "ethers";
 import { formatEther, formatUnits } from "viem";
 import { baseURL } from "@/constants/config";
+import useToastr from "@/hooks/useToastr";
+import useAPI from "@/hooks/useAPI";
+
+// components
+import LazyImage from "../share/lazyImage";
 //hooks
 import useActiveWeb3 from "@/hooks/useActiveWeb3";
 //abis
@@ -23,6 +28,7 @@ import { IUSER, IProject, IToken } from "@/types";
 import { useAtom } from "jotai";
 // constants
 import { CHAIN_DATA } from "@/constants/constants";
+import useAuth from "@/hooks/useAuth";
 
 interface IProps {
   id: string;
@@ -30,6 +36,9 @@ interface IProps {
 
 const Card = ({ id }: IProps) => {
   const { address, chainId, signer } = useActiveWeb3();
+  const { user } = useAuth ();
+  const { showToast } = useToastr ();
+  const api = useAPI ();
   const [contract, setContract] = React.useState<Contract | undefined>(
     undefined
   );
@@ -39,6 +48,7 @@ const Card = ({ id }: IProps) => {
   const [softcap, setSoftcap] = React.useState<bigint>(BigInt("0"));
   const [fundsRaised, setFundsRaised] = React.useState<bigint>(BigInt("0"));
   const [endTime, setEndTime] = React.useState<number>(0);
+  const [startTime, setStartTime] = React.useState<number>(0);
   const [distance, setDistance] = React.useState<number>(0);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const [mediaType, setMediaType] = React.useState<string>("");
@@ -103,6 +113,18 @@ const Card = ({ id }: IProps) => {
    * fetch ICO endTime
    * @param _contract
    */
+  async function _startTime(_contract: Contract) {
+    try {
+      const __startTime = await _contract.startTime();
+      setStartTime(__startTime);
+    } catch (err) {
+      console.log("failed fetch ICO startTime");
+    }
+  }
+  /**
+   * fetch ICO endTime
+   * @param _contract
+   */
   async function _endTime(_contract: Contract) {
     try {
       const __endTime = await _contract.endTime();
@@ -134,15 +156,6 @@ const Card = ({ id }: IProps) => {
       const response = await fetch(_projectURI);
       const __project = await response.json();
       setProject(__project);
-
-      fetch(__project.logo)
-        .then((response) => response.blob())
-        .then((blob) => {
-          // const type = blob.type.split("/")[0]; // Get the main type (image, video, etc.)
-          setMediaType (blob.type);
-          console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>", { logo: __project.logo, type: blob.type });
-        })
-        .catch((error) => console.error("Error fetching media:", error));
     } catch (err) {
       console.log("failed fetch project data");
     }
@@ -174,6 +187,17 @@ const Card = ({ id }: IProps) => {
     }
   }
 
+  const handleLike = async () => {
+    console.log(chainId, id, user);
+    try {
+      if (!user) return showToast("Please signin before start", "warning");
+      const res = await api.post("/user/like", { chainId, address: id });
+    } catch (err) {
+      console.log(err);
+      showToast("Operation Failed, Try again!", "warning");
+    }
+  }
+
   const _getICOInfo = async (_contract: Contract) => {
     const _start = Date.now() / 1000;
     // token data
@@ -186,6 +210,8 @@ const Card = ({ id }: IProps) => {
     _fundsRaised(_contract);
     // ico endtime
     _endTime(_contract);
+    // ico startime
+    _startTime(_contract);
     // project data
     _project(_contract);
     // test if tokens are fully charged
@@ -254,11 +280,19 @@ const Card = ({ id }: IProps) => {
           </span>
         </div>
       );
-    } else if (status === 0 && tokensFullyCharged) {
+    } else if (status === 0 && tokensFullyCharged && fundsRaised < softcap) {
+      return (
+        <div className="ribbon bg-gradient-to-r from-[#a89262] to-[#c4b585] shadow-lg">
+          <span className="font-bold text-sm text-white [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">
+            Live
+          </span>
+        </div>
+      );
+    } else if (status === 0 && tokensFullyCharged && fundsRaised >= softcap) {
       return (
         <div className="ribbon bg-gradient-to-r from-[#cfb377] to-[#c4b585] shadow-lg">
           <span className="font-bold text-sm text-white [text-shadow:_0_2px_2px_rgb(0_0_0_/_40%)]">
-            Live
+            PASSING
           </span>
         </div>
       );
@@ -300,28 +334,30 @@ const Card = ({ id }: IProps) => {
   return (
     <div className="w-full dark:bg-[#100E28] bg-white p-4 rounded-2xl relative">
       <section id="logo" className="relative w-full rounded-2xl aspect-square">
-        {mediaType.toLowerCase().startsWith("video") ? (
+      {
+          !project ?
+          <Skeleton className="rounded-lg w-full aspect-square dark:bg-[#363639] bg-gray-400">
+            <div className="dark:bg-gray-700 bg-gray-400 aspect-square w-full h-full rounded-[19px]"></div>
+          </Skeleton> :
+          project.logo.type === "video/mp4" ?
           <video
             className="w-full h-full object-contain dark:bg-black bg-gray-100  rounded-2xl"
             controls
           >
-            <source src={project?.logo + ""} />
-          </video>
-        ) : mediaType.toLowerCase().startsWith("image") ? (
-          <Image
-            src={project?.logo + ""}
-            key={project?.logo + ""}
-            width={0}
-            alt=""
-            height={0}
-            sizes="100vw"
-            className="w-full h-full object-contain dark:bg-black bg-gray-100  rounded-2xl"
-          />
-        ) : (
-          <Skeleton className="rounded-lg w-full aspect-square dark:bg-[#363639] bg-gray-400">
-            <div className="dark:bg-gray-700 bg-gray-400 aspect-square w-full h-full rounded-[19px]"></div>
-          </Skeleton>
-        )}
+            <source src={project.logo.url} />
+          </video> :
+          <LazyImage src={project.logo.url} />
+          // <Image
+          //   src={project.logo.url}
+          //   key={project.logo.url}
+          //   width={0}
+          //   alt=""
+          //   height={0}
+          //   sizes="100vw"
+          //   priority={false}
+          //   className="w-full h-full object-contain dark:bg-black bg-gray-100  rounded-2xl"
+          // />
+        }
         <div className="absolute right-4 -translate-y-1/2 w-1/6 p-1 bg-white rounded-[30%]">
           {creator?.avatar ? (
             <Image
@@ -359,7 +395,7 @@ const Card = ({ id }: IProps) => {
         </div>
         {address === owner && status === 0 && !tokensFullyCharged && (
           <div
-            onClick={() => router.push(`/deposit/${id}`)}
+            onClick={() => router.push(`/deposit?id=${id}`)}
             className="text-xs flex gap-3 items-center bg-[#48916a] text-white cursor-pointer hover:opacity-60 dark:text-white px-3 py-[6px] rounded-full"
           >
             Deposit Token
@@ -395,33 +431,26 @@ const Card = ({ id }: IProps) => {
 
       <section id="progress" className="mt-3 text-[#868686]">
         <h2 className="text-sm mb-2">
-          Progress (
-          {hardcap > 0
-            ? (Number(formatEther(fundsRaised)) * 100) /
-              Number(formatEther(hardcap))
-            : 0}{" "}
-          %)
+          Progress ({hardcap > 0 ? reduceAmount((Number(formatEther(fundsRaised)) * 100) / Number(formatEther(hardcap))) : 0}{" "}%)
         </h2>
         <Progress
-          percent={
-            hardcap > 0
-              ? (Number(formatEther(fundsRaised)) * 100) /
-                Number(formatEther(hardcap))
-              : 0
-          }
+          hardcap={Number(formatEther(hardcap))}
+          softcap={Number(formatEther(softcap))}
+          fundsRaised={Number(formatEther(fundsRaised))}
         />
         <div className="mt-2 flex justify-between text-sm">
-          <span>{formatEther(fundsRaised)} ETH</span>
-          <span>{formatEther(hardcap)} ETH</span>
+          <span>{reduceAmount(formatEther(fundsRaised))} ETH</span>
+          <span>{reduceAmount(formatEther(hardcap))} ETH</span>
         </div>
       </section>
 
+      
       <section
-        id="liquidity%"
-        className="flex justify-between text-black dark:text-[#C0C0C0] text-sm mt-5"
+        id="Start Time"
+        className="flex justify-between text-black dark:text-[#C0C0C0] text-sm mt-4"
       >
-        <span>Liquiduty %:</span>
-        <span>55%</span>
+        <span>Start Time:</span>
+        <span>{new Date(startTime * 1000).toDateString()}</span>
       </section>
       <section
         id="LockupTime"
@@ -433,26 +462,20 @@ const Card = ({ id }: IProps) => {
 
       <section
         id="actions"
-        className="mt-5 max-w-1/2 flex justify-between items-center text-xs"
+        className="mt-5 max-w-1/2 flex gap-2 justify-between items-center text-xs"
       >
         <div className="flex truncate items-center gap-2 rounded-full bg-[#E5EBFF] dark:bg-black p-2 pr-3 text-[#0776DA] dark:text-white">
           <Icon icon="fa6-regular:clock" width={22} />
           <span className="truncate">{`${days}d ${hours}h ${minutes}m ${seconds}s`}</span>
         </div>
 
-        <section className="flex gap-[3px]">
-          <button className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
-            <Icon
-              icon="mdi:bell-outline"
-              width={22}
-              className="text-[#2B6EC8]"
-            />
-          </button>
-          <button className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
+        <section className="flex gap-1">
+          {/* <button onClick={handleLike} className="dark:bg-[#020110] bg-[#E5EBFF] px-[10px] rounded-xl hover:opacity-60">
             <Icon icon="ph:heart-bold" width={22} className="text-[#2B6EC8]" />
-          </button>
+            <Icon icon="tabler:heart-filled" width={22} className="text-[#2B6EC8]" />
+          </button> */}
           <button
-            onClick={() => router.push(`/${id}`)}
+            onClick={() => router.push(`/details?id=${id}`)}
             className="rounded-xl truncate bg-[#2B6EC8] px-2 text-white py-3"
           >
             View

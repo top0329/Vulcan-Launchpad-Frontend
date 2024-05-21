@@ -24,7 +24,7 @@ import Progress from "@/components/dashboard/create/progress";
 //methods
 import { uploadToPinata, uploadToIPFS } from "@/utils";
 //constants
-import { cyptoSIDAO } from '@/constants/config';
+import { cyptoSIDAO } from '@/constants/constants';
  
 import {
   walletAtom,
@@ -183,6 +183,7 @@ const Create = ({ step, setStep }: IProps) => {
     if (!address || !chainId || !signer) {
       return;
     }
+
     const _contractDAI = new Contract(DAI_ADDRESSES[chainId], DAI, signer);
     setContractDAI(_contractDAI);
     const _contractFactory = new Contract(
@@ -319,13 +320,11 @@ const Create = ({ step, setStep }: IProps) => {
   }, [currency, price, ethPrice, hardCap]);
   // @dev totalSupply
   const _totalSupply = React.useMemo(() => {
+    console.log(totalSupply, decimals)
     if (totalSupply?.status !== 'success' || totalSupply === undefined || decimals?.status !== 'success' || decimals === undefined) {
       return BigInt("0");
     } else {
-      return BigInt(formatUnits(
-        BigInt(String(totalSupply.result)),
-        Number(decimals?.result)
-      ));
+      return BigInt(String(totalSupply.result)) / parseUnits('1', Number(decimals?.result))
     }
   }, [totalSupply, decimals])
 
@@ -365,7 +364,6 @@ const Create = ({ step, setStep }: IProps) => {
       // @step1 upload logo to PINATA
       setStepper (1);
       setPercent (0);
-      console.log(preview)
       const _logoURI = await uploadToPinata(
         preview?.data as string,
         ({ loaded, total }: { loaded: number; total: number }) => {
@@ -384,7 +382,10 @@ const Create = ({ step, setStep }: IProps) => {
       const _projectInfo = JSON.stringify({
         title,
         description: description,
-        logo: _logoURI,
+        logo: {
+          url: _logoURI,
+          type: String(preview?.type)
+        },
         youtubeLink,
         twitter,
         instagram,
@@ -393,6 +394,7 @@ const Create = ({ step, setStep }: IProps) => {
         farcaster,
         lens
       });
+      console.log({ _projectInfo });
       const _projectURI = await uploadToIPFS(
         new File(
           [
@@ -423,7 +425,7 @@ const Create = ({ step, setStep }: IProps) => {
         _totalSupply,
         tokenAddress,
         wallet,
-        cyptoSIDAO
+        crptoSIDAO: cyptoSIDAO[Number(chainId)]
       })
       const _tx = await contractFactory?.launchNewICO (
         _projectURI,
@@ -438,7 +440,7 @@ const Create = ({ step, setStep }: IProps) => {
         _totalSupply,
         tokenAddress,
         wallet,
-        cyptoSIDAO
+        cyptoSIDAO[Number(chainId)]
       );
       await _tx.wait();
       setPaid (false);
@@ -553,7 +555,7 @@ const Create = ({ step, setStep }: IProps) => {
 
       <div className="px-2 pt-2 text-sm">
         <h3 className="flex gap-2">
-          <span>* You need to deposit <span className="text-[15px] text-green-600 font-bold">{ String(_depositAmountToHardcap) } tokens</span> to reach your hard cap and start this ICO.</span>
+          <span>* You need to deposit <span className="text-[15px] text-green-600 font-bold">{ String(_depositAmountToHardcap) } tokens</span> to reach your hard cap and start this ICO </span>
         </h3>
         <h3 className="flex gap-2">
           <span>* If you reach your soft cap, you will distribute <span className="text-[15px] text-green-600 font-bold">{ String(_depositAmountToSoftcap) } tokens</span> and <span className="text-[15px] text-red-600 font-bold">{String(_depositAmountToHardcap - _depositAmountToSoftcap)} tokens</span> will be returned.</span>

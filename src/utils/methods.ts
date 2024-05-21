@@ -122,3 +122,15 @@ export const reduceAddress = (
 export const _randomNumber = () => {
   return Math.floor(Math.random() * 1000000000);
 }
+
+// @dev get id from youtube link
+export const _getYoutubeId = (url: string) => {
+  var match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|watch)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+  return match ? match[1] : null;
+}
+
+// @dev get id from youtube link
+export const _getYoutubeThumbnailURL = (url: string) => {
+  var match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|watch)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+  return match ? `https://i.ytimg.com/vi/${match[1]}/maxresdefault.jpg` : "";
+}
